@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ast
 import os
+import operator
 
 def to_grayscale(img):
     # (32 ,32, 1)
@@ -43,26 +44,40 @@ def build_all_histograms(path):
 
 import math
 
+def normalize_hist(hist):
+    hist_norm = {}
+    
+    for pix in hist:
+        hist_norm[pix] = hist_norm.get(pix, hist[pix])
+        hist_norm[pix] /= np.sum(list(hist.values()))
+
+    return hist_norm
+
 def euclidian_distance(v1, v2):
     return (v1 - v2)**2
+
 
 def rank_images(img_hist, histograms):
     files = list(histograms.keys())
     euclidian_diff = {}
     for f in files:
         euclidian_diff[f] = euclidian_diff.get(f, 0)
-        for pix_value in img_hist:
-            pix_distance = euclidian_distance(img_hist[pix_value], histograms[f][pix_value])
+        norm_img_hist = normalize_hist(img_hist)
+        norm_histograms = normalize_hist(histograms[f])
+        for pix_value in norm_img_hist:
+            pix_distance = euclidian_distance(norm_img_hist[pix_value], norm_histograms[pix_value])
             euclidian_diff[f] += pix_distance
         euclidian_diff[f] = math.sqrt(euclidian_diff[f])
-    return euclidian_diff
+    
+    euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))   
+    return euc_diff_sorted
+
 
 if __name__ == "__main__":
     img = cv2.imread('corel1000/Africa81.jpg')
     aux = to_grayscale(img)
     
     histogram = calc_histograma(aux)
-    
     if os.path.exists('./histograms.txt'):
         hists = {}
 

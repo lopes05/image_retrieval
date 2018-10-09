@@ -26,7 +26,7 @@ def calc_histograma(img):
     return dic
 
 def save_histograms(histogramas):
-    with open('http://localhost:8000/histograms.txt', 'a') as f:
+    with open('./histograms.txt', 'a') as f:
         for i in histogramas.keys():
             w = str(i) + '#' + str(histogramas[i]) + '\n'
             f.write(w)
@@ -94,23 +94,17 @@ def run_process(imgurl):
     aux = to_grayscale(img)
     
     histogram = calc_histograma(aux)
-    #if os.path.exists('http://localhost:8000/histograms.txt'):
-    req = requests.get('http://localhost:8000/histograms.txt')
-    if req.status_code == 200:
+    if os.path.exists('./histograms.txt'):
         hists = {}
         try:
-            f = str(req.content)
-            lines = [line.split('#') for line in f.split('\\n')]
-            for line in lines:
-                try:
-                    if line[0] and line[0] != "'":
-                        hists[line[0]] = hists.get(line[0], {})
-                        hists[line[0]] = ast.literal_eval(line[1])
-                except:
-                    print(line[0])
+            with open('./histograms.txt', 'r') as f:
+                lines = [line.split('#') for line in f]
+                for line in lines:
+                    hists[line[0]] = hists.get(line[0], {})
+                    hists[line[0]] = ast.literal_eval(line[1])
         except Exception as e:
             import traceback
             logger.error(traceback.format_exc())        
     else:
-        hists = build_all_histograms('/home/gustavo/GustavoUNB/tcc/corel1000')
+        hists = build_all_histograms('../corel1000')
     return rank_images(histogram, hists)

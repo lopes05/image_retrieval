@@ -1,7 +1,7 @@
 import sys
-from flask import Flask
 from image import *
-from flask import request
+from flask import Flask, flash, request, redirect, url_for
+from werkzeug.utils import secure_filename
 import requests
 
 import logging
@@ -9,8 +9,11 @@ import logging
 logging.basicConfig(filename='backend.log', level=logging.DEBUG)
 logger = logging.getLogger('backend')
 
+UPLOAD_FOLDER = '/tmp/'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route("/")
 def hello():
@@ -20,16 +23,21 @@ import cv2
 from flask import Response
 import json
 
-@app.route('/image', methods=['GET'])
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/image', methods=['POST'])
 def image_url():
     try:
-        f = open('/tmp/temp.jpg','wb')
+        image = request.files['imgurl']  # get the image URL
+        
+        if image and allowed_file(image.filename):
+            filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        image_url = request.args['imgurl']  # get the image URL
-        f.write(requests.get('http://localhost:8000/' + image_url).content)
-        f.close()
-
-        hists = run_process('/tmp/temp.jpg')
+        hists = run_process(f'/tmp/{filename}')
         return Response(json.dumps(hists))
 
     except Exception as e:

@@ -9,7 +9,8 @@ function refilter()
 
     imgs = [];
     for (d in dados){
-        var pacote = {'img': d, 'relevant': document.getElementById(d).checked};
+        el = document.getElementById(d)
+        var pacote = {'img': d, 'relevant': el.checked};
         imgs.push(pacote);
     }
     json = JSON.stringify(imgs);

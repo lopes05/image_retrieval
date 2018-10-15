@@ -84,8 +84,12 @@ def rank_images(img_hist, histograms):
     except Exception as e:
         logger.error(str((e, type(e), f)))
 
-
-    return euc_diff_sorted
+    
+    dx = {}
+    for el in euc_diff_sorted:
+        dx[el[0]] = el[1]
+    
+    return dx
 
 import requests
 

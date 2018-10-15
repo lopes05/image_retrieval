@@ -21,13 +21,13 @@ def hello():
 import cv2
 
 from flask import Response
-import json
+import json as js
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
+from flask import json
 @app.route('/image', methods=['POST'])
 def image_url():
     try:
@@ -36,9 +36,18 @@ def image_url():
         if image and allowed_file(image.filename):
             filename = secure_filename(image.filename)
             image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
+        logger.info(image.filename)
         hists = run_process(f'/tmp/{filename}')
-        return Response(json.dumps(hists))
+        
+        logger.info('finished')
+        from collections import OrderedDict
+        response = app.response_class(
+            response=js.dumps(hists),
+            status=200,
+            mimetype='application/json'
+        )
+        return response
+
 
     except Exception as e:
         logger.error(str(e))

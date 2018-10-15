@@ -53,5 +53,20 @@ def image_url():
         logger.error(str(e))
         return 'error'
 
+@app.route('/refilter', methods=['POST'])
+def refilter():
+    try:
+        dados = request.get_json()
+        hists = refilter_imgs(dados)
+        response = app.response_class(
+            response=js.dumps(hists),
+            status=200,
+            mimetype='application/json'
+        )
+        return response
+    except Exception as e:
+        logger.error(str(e))
+        return 'error'
+
 if __name__ == "__main__":
     app.run(host='127.0.0.1', port=5000)

@@ -54,30 +54,38 @@ def build_all_histograms(path):
 
 import math
 
-def normalize_hist(hist):
+def normalize_hist(hist, ok=True):
     hist_norm = {}
-    
+    total = np.sum(list(hist.values()))
     for pix in hist:
         hist_norm[pix] = hist_norm.get(pix, hist[pix])
-        hist_norm[pix] /= np.sum(list(hist.values()))
+        hist_norm[pix] /= total
+    if not ok:
+        logger.info(hist)
+        logger.info(hist_norm)
 
     return hist_norm
 
 def euclidian_distance(v1, v2):
     return (v1 - v2)**2
 
+def manhatan_distance(v1, v2):
+    return abs(v1 - v2)
 
-def rank_images(img_hist, histograms):
+def rank_images(img_hist, histograms, ok=True):
     files = list(histograms.keys())
     euclidian_diff = {}
     euc_diff_sorted = []
+    
     try:
+        norm_img_hist = normalize_hist(img_hist, ok=ok)
         for f in files:
             euclidian_diff[f] = euclidian_diff.get(f, 0)
-            norm_img_hist = normalize_hist(img_hist)
             norm_histograms = normalize_hist(histograms[f])
             for pix_value in norm_img_hist:
-                pix_distance = euclidian_distance(norm_img_hist[pix_value], norm_histograms[pix_value])
+                pix_distance = euclidian_distance(norm_img_hist[pix_value],\
+                                                  norm_histograms[pix_value])
+                #pix_distance = manhatan_distance(norm_img_hist[pix_value], norm_histograms[pix_value])
                 euclidian_diff[f] += pix_distance
             euclidian_diff[f] = math.sqrt(euclidian_diff[f])
             euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))
@@ -93,6 +101,15 @@ def rank_images(img_hist, histograms):
 
 import requests
 
+def get_hists():
+    hists = {}
+    with open('./histograms.txt', 'r') as f:
+        lines = [line.split('#') for line in f]
+        for line in lines:
+            hists[line[0]] = hists.get(line[0], {})
+            hists[line[0]] = ast.literal_eval(line[1])
+    return hists
+
 def run_process(imgurl):
     img = cv2.imread(imgurl)
     aux = to_grayscale(img)
@@ -101,14 +118,22 @@ def run_process(imgurl):
     if os.path.exists('./histograms.txt'):
         hists = {}
         try:
-            with open('./histograms.txt', 'r') as f:
-                lines = [line.split('#') for line in f]
-                for line in lines:
-                    hists[line[0]] = hists.get(line[0], {})
-                    hists[line[0]] = ast.literal_eval(line[1])
+            hists = get_hists()
         except Exception as e:
             import traceback
             logger.error(traceback.format_exc())        
     else:
         hists = build_all_histograms('../corel1000')
     return rank_images(histogram, hists)
+
+def refilter_imgs(data):
+    hists = get_hists() # todos histogramas
+    useful_data = [x for x in data if x['relevant']] # apenas os marcados como relevantes
+    
+    histogramas = [list(hists[x['img']].values()) for x in useful_data]
+    new_sum = np.sum(histogramas, axis=0) # soma da qtde de cada tom de cinza
+    new_sum = new_sum // len(useful_data)
+    dic = {x:new_sum[x] for x in range(0,256)}
+    
+    return rank_images(dic, hists, False) # normaliza o histograma e compara com os da base
+    

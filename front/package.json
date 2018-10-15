@@ -12,6 +12,7 @@
   "dependencies": {
     "electron-screenshot": "^1.0.4",
     "image-size": "^0.5.4",
+    "popper.js": "^1.14.4",
     "python-shell": "^1.0.6"
   },
   "devDependencies": {

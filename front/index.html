@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Thumbnail Gallery - Start Bootstrap Template</title>
+    <title>Image Recovery</title>
 
     <!-- Bootstrap core CSS -->
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -23,7 +23,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
       <div class="container">
-        <a class="navbar-brand" href="#">Start Bootstrap</a>
+        <a class="navbar-brand" href="#">Image Recovery</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -37,12 +37,6 @@
             <li class="nav-item">
               <a class="nav-link" href="#">About</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Services</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Contact</a>
-            </li>
           </ul>
         </div>
       </div>
@@ -52,81 +46,18 @@
     <div class="container">
    
         <div class="row"> 
-            <form method="POST" action="http://127.0.0.1:5000/image" enctype=multipart/form-data>
-              <input name="imgurl" type="file" accept="image/png, image/jpeg, image/jpg"/>
-              
-              <div class="row">
-                      <button type="submit" value=Upload class="btn btn-primary">Submit</button>
-              </div>
-            </form>
-            
+            <input id="imgurl" name="imgurl" type="file" accept="image/png, image/jpeg, image/jpg"/>    
+            <div class="row">
+                    <button type="submit" value=Upload class="btn btn-primary" onclick="upload_file()">Submit</button>
+            </div>
+                      
       </div>
 
-      <div>
-        <h1 class="my-4 text-center text-lg-left">Resultados</h1>
+      <div id="imagens" style="display: none">
+        <h1 class="my-4 text-center">Resultados</h1>
 
-        <div class="row text-center text-lg-left">
-
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
-          <div class="col-lg-3 col-md-4 col-xs-6">
-            <a href="#" class="d-block mb-4 h-100">
-              <img class="img-fluid img-thumbnail" src="http://placehold.it/400x300" alt="">
-            </a>
-          </div>
+        <div id="realimagens" class="row text-center text-lg-left">
+          
         </div>
       </div>
     </div>
@@ -141,6 +72,7 @@
       <!-- /.container -->
     </footer>
 
+    <script src="script.js"></script>
     <!-- Bootstrap core JavaScript -->
     <script src="vendor/jquery/jquery.min.js"></script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

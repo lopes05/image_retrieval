@@ -1,9 +1,9 @@
 import sys
 from image import *
-from flask import Flask, flash, request, redirect, url_for
+from flask import Flask, flash, request, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
 import requests
-
+import cv2
 import logging
 
 logging.basicConfig(filename='backend.log', level=logging.DEBUG)
@@ -14,6 +14,10 @@ ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+
+cbir = None
 
 @app.route("/")
 def hello():
@@ -31,14 +35,20 @@ from flask import json
 @app.route('/image', methods=['POST'])
 def image_url():
     try:
-        image = request.files['imgurl']  # get the image URL
+        image = request.files['imgurl']
         
         if image and allowed_file(image.filename):
             filename = secure_filename(image.filename)
             image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         logger.info(image.filename)
-        hists = run_process(f'/tmp/{filename}')
-        
+        global cbir
+        cbir = CBIR()
+        hists = cbir.run_process(f'/tmp/{filename}')
+        #img = cv2.imread(f'/tmp/{filename}')
+        #aux = to_grayscale(img)
+        #logger.info('o')
+        #histogram = calc_histograma(aux)
+        #build_tsne(histogram, hists, f'/tmp/{filename}')
         logger.info('finished')
         from collections import OrderedDict
         response = app.response_class(
@@ -55,9 +65,10 @@ def image_url():
 
 @app.route('/refilter', methods=['POST'])
 def refilter():
+    global cbir
     try:
         dados = request.get_json()
-        hists = refilter_imgs(dados)
+        hists = cbir.refilter_imgs(dados)
         response = app.response_class(
             response=js.dumps(hists),
             status=200,

@@ -204,14 +204,104 @@ class RelevanceFeedbackProjection():
         self.relevants = relevants
         self.rel_len = len(self.relevants)
         self.irr_len = len(self.irrelevants)
-
+        self.minRI, self.maxRI = self.calc_minRI_maxRI()
+        self.minSI, self.maxSI = self.calc_minSI_maxSI()
+        self.delta = np.subtract(self.maxRI, self.minRI)
+        self.p1, self.p2 = self.calc_pontos_projecao()
+        self.t1, self.t2 = self.calc_tam_retas()
+        self.projp1, self.projp2 = self.calc_projecoes()
+        self.vet_dists, self.sum_dists = self.calc_dist_rels()
+        self.vet_weight, self.sumweights = [1, 1, 1], 3 #arrumar
+        self.avg = self.calc_avg()
     
-    def minRI_maxRI(self):
-        minRI = [10000000] * 256
-        maxRI = [0] * 256
-        for vetor in (relevants + irrelevants):
+    def calc_minRI_maxRI(self):
+        minRI = [10000000] * len(self.query)
+        maxRI = [0] * len(self.query)
+        for vetor in (self.relevants):
             for i in range(len(vetor)):
                 minRI[i] = min(minRI[i], vetor[i])
                 maxRI[i] = max(maxRI[i], vetor[i])
 
         return minRI, maxRI
+
+    def calc_minSI_maxSI(self):
+        minSI = [10000000] * len(self.query)
+        maxSI = [0] * len(self.query)
+        for vetor in (self.irrelevants):
+            for i in range(len(vetor)):
+                minSI[i] = min(minSI[i], vetor[i])
+                maxSI[i] = max(maxSI[i], vetor[i])
+
+        return minSI, maxSI
+
+    def calc_pontos_projecao(self):
+        p1, p2 = [0] * len(self.query), [0] * len(self.query)
+        for i in range(len(self.delta)):
+            p1 = self.minRI[i] - self.delta[i]
+            p2 = self.maxRI[i] + self.delta[i]
+
+        return p1, p2
+
+    def calc_tam_retas(self):
+        t1, t2 = [0] * len(self.query), [0] * len(self.query)
+        for i in range(len(self.minSI)):
+            t1[i] = abs(self.minSI[i] - self.p1)
+            t2[i] = abs(self.p2 - self.maxSI[i])
+        return t1, t2
+
+    def calc_projecoes(self):
+        projp1 = [0] * len(self.query)
+        projp2 = [0] * len(self.query)
+        
+        for i in range(len(self.minRI)):
+            projp1[i] = self.minRI[i] + self.t1[i]
+            projp2[i] = self.maxRI[i] - self.t2[i]
+            
+            if self.minSI[i] >= self.minRI[i]:
+                projp1[i] = self.minRI[i]
+            if self.maxSI[i] <= self.maxRI[i]:
+                projp2[i] = self.maxRI[i]
+
+        return projp1, projp2
+
+    def calc_dist_rels(self):
+        dists = []
+        for img in self.relevants:
+            dist = 0
+            for indice in range(len(img)):
+                dist += abs(self.query[indice] - img[indice])
+            dists.append(dist)
+        return dists, np.sum(dists)
+
+    def calc_weight_relevants(self):
+        pass
+
+    def calc_avg(self):
+        avg = []
+
+        for featureindex in range(len(self.query)):
+            soma = 0
+            for imageindex in range(len(self.relevants)):
+                #self.sum_dists = 0.0000 + 0.0038 + 0.0137
+                #self.vet_dists = [0.0000, 0.0038, 0.0137]
+                # e se a divisao for por 0
+                dists_calc = self.vet_dists[imageindex] / self.sum_dists
+            
+                weights_calc = self.vet_weight[imageindex] / self.sumweights
+                print(dists_calc, weights_calc)
+
+                feature = self.relevants[imageindex][featureindex]
+                print('feature', feature)
+                conta = ((feature * dists_calc + feature * weights_calc))
+                print('conta>', conta)
+                soma += conta
+            avg.append(soma/2)
+
+        return avg
+
+    def calc_new_object(self):
+        new_obj = [0] * len(self.query)
+        for i in range(len(new_obj)):
+            new_obj[i] = (self.projp1[i] + self.projp2[i] + self.avg[i]) / 3
+        
+        return new_obj

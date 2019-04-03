@@ -53,6 +53,7 @@ class ImageProperties():
 
 class ProjectServices():
 
+    @staticmethod
     def save_histograms(histogramas):
         with open('./histograms.txt', 'a') as f:
             for i in histogramas.keys():
@@ -60,7 +61,7 @@ class ProjectServices():
                 f.write(w)
             f.close()
 
-
+    @staticmethod
     def build_all_histograms(path):
         histogramas = {}
         cont = 1
@@ -68,19 +69,21 @@ class ProjectServices():
         try:
             for fil in os.listdir(path):
                 logger.info(fil)
-                img = to_grayscale(cv2.imread(f'{path}/{fil}'))
+                img = ImageProperties.to_grayscale(cv2.imread(f'{path}/{fil}'))
                 #img = cv2.cvtColor(cv2.imread(f'{path}/{fil}'), cv2.COLOR_RGB2GRAY)
-                hist = calc_histograma(img)
+                hist = ImageProperties.calc_histograma(img)
+                hist = ImageProperties.normalize_hist(hist)
                 histogramas[fil] = hist
                 cont += 1
         except Exception as e:
             logger.info(path)
             logger.error(str(type(e)))
 
-        save_histograms(histogramas)
+        ProjectServices.save_histograms(histogramas)
         logger.info('Histograms saved!')
         return histogramas
 
+    @staticmethod
     def get_hists(path='./histograms.txt'):
         hists = {}
         with open(path, 'r') as f:
@@ -90,12 +93,11 @@ class ProjectServices():
                 hists[line[0]] = ast.literal_eval(line[1])
         return hists
 
-
-
 class CBIR():
 
     def __init__(self):
         self.query_hist = None
+        self.normalized_query = None
 
     @staticmethod
     def euclidian_distance(v1, v2):
@@ -111,17 +113,17 @@ class CBIR():
         euc_diff_sorted = []
         
         try:
-            norm_img_hist = ImageProperties.normalize_hist(img_hist, ok=ok)
+            norm_img_hist = img_hist
             for f in files:
                 euclidian_diff[f] = euclidian_diff.get(f, 0)
-                norm_histograms = ImageProperties.normalize_hist(histograms[f])
+                norm_histograms = histograms[f]
                 for pix_value in norm_img_hist:
                     #pix_distance = euclidian_distance(norm_img_hist[pix_value],\
                     #                                 norm_histograms[pix_value])
                     pix_distance = CBIR.manhatan_distance(norm_img_hist[pix_value], norm_histograms[pix_value])
                     euclidian_diff[f] += pix_distance
                 #euclidian_diff[f] = math.sqrt(euclidian_diff[f])
-                euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))[:20]
+                euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))[:10]
         except Exception as e:
             logger.error(str((e, type(e), f)))
 
@@ -151,7 +153,12 @@ class CBIR():
         else:
             logger.info('rebuild')
             hists = ProjectServices.build_all_histograms('../corel1000')
-        return self.rank_images(histogram, hists)
+
+        logger.info(type(histogram))
+        self.normalized_query = ImageProperties.normalize_hist(self.query_hist)
+        self.query_hist = self.normalized_query.copy()
+        
+        return self.rank_images(self.query_hist, hists)
 
     def refilter_imgs(self, data):
         #global query_hist
@@ -162,26 +169,26 @@ class CBIR():
         tantofaz = [x for x in data if x not in useful_data and x not in irrelevant]
 
         original_hist = self.query_hist
-
+        
         tamrel = 1
-        if useful_data:
+        if len(useful_data):
             histogramas = [list(hists[x['img']].values()) for x in useful_data]
             tamrel = len(useful_data)
         else:
             histogramas = [[0] * 256]
-
+        
         rel_sum = np.sum(histogramas, axis=0) # soma da qtde de cada tom de cinza
-        rel_sum = rel_sum // tamrel
+        rel_sum = rel_sum / tamrel
 
         tamirrel = 1
-        if irrelevant:
+        if len(irrelevant):
             irr = [list(hists[x['img']].values()) for x in irrelevant]
             tamirrel = len(irrelevant)
         else:
             irr = [[0] * 256]
 
         irr_sum = np.sum(irr, axis=0) # soma da qtde de cada tom de cinza
-        irr_sum = irr_sum // tamirrel
+        irr_sum = irr_sum / tamirrel
 
         logger.info('------------')
         logger.info(rel_sum)
@@ -196,6 +203,92 @@ class CBIR():
         return self.rank_images(dic, hists) # normaliza o histograma e compara com os da base
         
 
+    def multiple_query_point_search(self, data):
+        relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
+        irrelevant = [x for x in data if x['irrelevant']]
+        original_hist = list(self.normalized_query.values())
+        hists = ProjectServices.get_hists()
+        
+        histogramas_rels = [list(hists[x['img']].values()) for x in relevant]
+        histogramas_irrels = [list(hists[x['img']].values()) for x in irrelevant]
+        
+        logger.info("CRIANDO PHANTOM OBJECT")
+        logger.info(histogramas_rels)
+        rfp = RelevanceFeedbackProjection(original_hist, histogramas_rels, histogramas_irrels)
+        
+        phantom_object = rfp.calc_new_object()
+        logger.info("PHANTOM OBJECT CRIADO")
+        queries = histogramas_rels + [phantom_object]
+
+        vetorretorno = []
+        logger.info(len(queries))
+        cont = 0
+        for imagehist in queries:
+            hist_tmp = {x:imagehist[x] for x in range(0,256)}
+            results = self.rank_images(hist_tmp, hists)
+            vetorretorno.append(results)
+            logger.info("done query " + str(cont))
+            cont += 1
+
+        logger.info(vetorretorno)
+        logger.info("OK. done multiple queries")
+        # combinar resultados
+        
+        """
+        conjunto = {}
+        for retorno in vetorretorno:
+            for localhist in retorno:
+                conjunto[localhist] = retorno[localhist]
+
+        logger.info(conjunto)
+        logger.info(len(conjunto))
+        conjunto = sorted(conjunto.items(), key=operator.itemgetter(1))[:10]
+        logger.info(conjunto)
+        listaconjunto = list(conjunto)
+        dx = {}
+        for el in conjunto:
+            dx[el[0]] = el[1]
+        logger.info(dx)
+        return dx
+        """
+        teste = self.distancia_combinada(vetorretorno, hists)
+        return vetorretorno[0]
+
+    def calc_single_dist(self, a, b):
+        #dists = []
+        dist = 0
+        logger.info(a)
+        logger.info(b)
+        for pix in a:
+            dist += CBIR.manhatan_distance(a[pix], b[pix])
+
+        return dist
+
+    def distancia_combinada(self, listageral, hists):
+        dists_originais = {}
+        
+        for lista in listageral:
+            for elemento in lista:
+                logger.info(elemento)
+                dist_original = self.calc_single_dist(self.normalized_query, hists[elemento])
+                dists_originais[elemento] = dist_original
+        somaoriginais = 0
+        logger.info("xuxu")
+        for chave in dists_originais:
+            somaoriginais += dists_originais[chave]
+        
+        dlinhas = []
+        for lista in listageral:
+            for elemento in lista:
+                pesoi = 1
+                pesototal = 1*len(lista)
+                dlinha = ((lista[elemento] * pesoi) / pesototal) + (lista[elemento] * somaoriginais / dists_originais[elemento]) 
+                dlinhas.append((dlinha, elemento))
+        #novadistancral:
+            
+        logger.info(dlinhas)
+        return dlinhas
+    
 
 class RelevanceFeedbackProjection():
     def __init__(self, hist_query, relevants, irrelevants):
@@ -211,7 +304,8 @@ class RelevanceFeedbackProjection():
         self.t1, self.t2 = self.calc_tam_retas()
         self.projp1, self.projp2 = self.calc_projecoes()
         self.vet_dists, self.sum_dists = self.calc_dist_rels()
-        self.vet_weight, self.sumweights = [1, 1, 1], 3 #arrumar
+        self.vet_weight = [1] * self.rel_len
+        self.sumweights = np.sum(self.vet_weight) 
         self.avg = self.calc_avg()
     
     def calc_minRI_maxRI(self):
@@ -296,7 +390,7 @@ class RelevanceFeedbackProjection():
                 print('conta>', conta)
                 soma += conta
             avg.append(soma/2)
-
+        logger.info("eu?")
         return avg
 
     def calc_new_object(self):

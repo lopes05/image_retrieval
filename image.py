@@ -98,6 +98,7 @@ class CBIR():
     def __init__(self):
         self.query_hist = None
         self.normalized_query = None
+        self.irrelevants_set = set()
 
     @staticmethod
     def euclidian_distance(v1, v2):
@@ -203,6 +204,75 @@ class CBIR():
         return self.rank_images(dic, hists) # normaliza o histograma e compara com os da base
         
 
+    def rfra(self, data):
+        logger.info("begin rfra")
+        relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
+        irrelevant = [x for x in data if x['irrelevant']]
+        original_hist = list(self.normalized_query.values())
+        hists = ProjectServices.get_hists()
+        
+        
+        histogramas_rels = [list(hists[x['img']].values()) for x in relevant]
+        nomes = [x['img'] for x in relevant]
+        
+        histogramas_irrels = [list(hists[x['img']].values()) for x in irrelevant]
+        
+        vetorretorno = []
+        cont = 0
+        for imagehist in histogramas_rels:
+            hist_tmp = {x:imagehist[x] for x in range(0,256)}
+            results = self.rank_images(hist_tmp, hists)
+            vetorretorno.append(results)
+            logger.info("done query " + str(cont))
+            cont += 1
+
+        return self.calcula_ordena_media(vetorretorno, nomes, hists)
+
+    def calcula_ordena_media(self, data, nomes, hists):
+        resultado, colunas, chaves = self.build_matrix_rfra(data,nomes,hists)
+        # tbm tenho  q corrigir o multiquery
+        listaretorno = []
+        for relevante in resultado:
+            media = np.mean(list(resultado[relevante].values()))        
+            listaretorno.append((media, relevante))
+            logger.info("media")
+            logger.info(media)
+        logger.info("------------")
+        listaretorno = sorted(listaretorno)[:10]
+        dicretorno = {}
+        for item in listaretorno:
+            dicretorno[item[1]] = item[0]
+        logger.info(dicretorno)
+        return dicretorno
+
+    def build_matrix_rfra(self, data, nomes, hists):
+        chaves = set()
+        colunas = nomes
+        for lista in data:
+            for elemento in lista:
+                chaves.add(elemento)
+
+        chaves = list(chaves)        
+        matrizresultado = {}
+        #colunas.append("query")
+        #chaves.append("query")
+
+
+        for nome in chaves:
+            matrizresultado[nome] = {}
+            for chave in colunas:
+                try:
+                    matrizresultado[nome][chave] = self.calc_single_dist(hists[nome], hists[chave])
+                except KeyError:
+                    #if chave != "query":
+                    #    matrizresultado[nome].append((self.calc_single_dist(self.query_hist, hists[chave]), chave))
+                    #else:
+                    #    matrizresultado[nome].append((self.calc_single_dist(self.query_hist, self.query_hist), chave))
+                    pass
+            #logger.info((nome, matrizresultado[nome]))
+        
+        return matrizresultado, colunas, chaves
+
     def multiple_query_point_search(self, data):
         relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
@@ -232,33 +302,14 @@ class CBIR():
 
         logger.info(vetorretorno)
         logger.info("OK. done multiple queries")
-        # combinar resultados
+        # combinar resultados 
+        dists_agregada = self.distancia_combinada(vetorretorno, hists)
         
-        """
-        conjunto = {}
-        for retorno in vetorretorno:
-            for localhist in retorno:
-                conjunto[localhist] = retorno[localhist]
-
-        logger.info(conjunto)
-        logger.info(len(conjunto))
-        conjunto = sorted(conjunto.items(), key=operator.itemgetter(1))[:10]
-        logger.info(conjunto)
-        listaconjunto = list(conjunto)
-        dx = {}
-        for el in conjunto:
-            dx[el[0]] = el[1]
-        logger.info(dx)
-        return dx
-        """
-        teste = self.distancia_combinada(vetorretorno, hists)
-        return vetorretorno[0]
+        return dists_agregada
 
     def calc_single_dist(self, a, b):
         #dists = []
         dist = 0
-        logger.info(a)
-        logger.info(b)
         for pix in a:
             dist += CBIR.manhatan_distance(a[pix], b[pix])
 
@@ -272,8 +323,9 @@ class CBIR():
                 logger.info(elemento)
                 dist_original = self.calc_single_dist(self.normalized_query, hists[elemento])
                 dists_originais[elemento] = dist_original
+        
         somaoriginais = 0
-        logger.info("xuxu")
+        
         for chave in dists_originais:
             somaoriginais += dists_originais[chave]
         
@@ -282,12 +334,27 @@ class CBIR():
             for elemento in lista:
                 pesoi = 1
                 pesototal = 1*len(lista)
-                dlinha = ((lista[elemento] * pesoi) / pesototal) + (lista[elemento] * somaoriginais / dists_originais[elemento]) 
-                dlinhas.append((dlinha, elemento))
-        #novadistancral:
-            
-        logger.info(dlinhas)
-        return dlinhas
+                if dists_originais[elemento] != 0:
+                    dlinha = ((lista[elemento] * pesoi) / pesototal) + ((lista[elemento] * somaoriginais) / dists_originais[elemento]) 
+                    dlinhas.append((dlinha, elemento))
+        
+        dlinhas = sorted(dlinhas)
+        
+        #logger.info(dlinhas)
+        dx = {}
+        
+        for el in dlinhas:
+            if len(dx) == 10:
+                break
+            dx[el[1]] = el[0]
+       
+        dxlist = sorted(dx.items(), key=operator.itemgetter(1))
+        dx = {}
+        for el in dxlist:
+            dx[el[0]] = el[1]
+
+        logger.info(dx)
+        return dx
     
 
 class RelevanceFeedbackProjection():
@@ -390,7 +457,7 @@ class RelevanceFeedbackProjection():
                 print('conta>', conta)
                 soma += conta
             avg.append(soma/2)
-        logger.info("eu?")
+        logger.info("avg calculado")
         return avg
 
     def calc_new_object(self):

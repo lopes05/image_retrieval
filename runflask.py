@@ -68,7 +68,16 @@ def refilter():
     global cbir
     try:
         dados = request.get_json()
-        hists = cbir.refilter_imgs(dados)
+        tecnica = dados.pop()['tecnica']
+        nomeclasse = dados.pop()['classname']
+
+        if tecnica == 'qpm':
+            hists = cbir.refilter_imgs(dados)
+        elif tecnica == 'multiquery':
+            hists = cbir.multiple_query_point_search(dados)
+        elif tecnica == 'rfra':
+            hists = cbir.rfra(dados)
+
         response = app.response_class(
             response=js.dumps(hists),
             status=200,

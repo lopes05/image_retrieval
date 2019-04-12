@@ -1,0 +1,23 @@
+{
+  "name": "tccfront",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron-screenshot": "^1.0.4",
+    "image-size": "^0.5.4",
+    "popper.js": "^1.14.4",
+    "python-shell": "^1.0.6"
+  },
+  "devDependencies": {
+    "electron": "^3.0.3",
+    "electron-prebuilt-compile": "^3.0.2",
+    "jquery": "^3.3.1"
+  }
+}

@@ -133,7 +133,7 @@ class CBIR():
                         newlist.append(item)
                         contador += 1
                 euc_diff_sorted = newlist
-                logger.info(euc_diff_sorted)
+                #logger.info(euc_diff_sorted)
         except Exception as e:
             logger.error(str((e, type(e), f)))
 
@@ -297,8 +297,11 @@ class CBIR():
         logger.info("CRIANDO PHANTOM OBJECT")
         logger.info(histogramas_rels)
         rfp = RelevanceFeedbackProjection(original_hist, histogramas_rels, histogramas_irrels)
-        
+        for hist in irrelevant:
+            self.irrelevants_set.add(hist['img'])
+
         phantom_object = rfp.calc_new_object()
+        logger.info(phantom_object)
         logger.info("PHANTOM OBJECT CRIADO")
         queries = histogramas_rels + [phantom_object]
 
@@ -451,15 +454,17 @@ class RelevanceFeedbackProjection():
 
     def calc_avg(self):
         avg = []
-
         for featureindex in range(len(self.query)):
             soma = 0
             for imageindex in range(len(self.relevants)):
                 #self.sum_dists = 0.0000 + 0.0038 + 0.0137
                 #self.vet_dists = [0.0000, 0.0038, 0.0137]
                 # e se a divisao for por 0
+                
+                if self.sum_dists == 0:
+                    self.sum_dists = 1
                 dists_calc = self.vet_dists[imageindex] / self.sum_dists
-            
+                
                 weights_calc = self.vet_weight[imageindex] / self.sumweights
                 #print(dists_calc, weights_calc)
 
@@ -474,6 +479,7 @@ class RelevanceFeedbackProjection():
 
     def calc_new_object(self):
         new_obj = [0] * len(self.query)
+       
         for i in range(len(new_obj)):
             new_obj[i] = (self.projp1[i] + self.projp2[i] + self.avg[i]) / 3
         

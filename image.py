@@ -124,7 +124,16 @@ class CBIR():
                     pix_distance = CBIR.manhatan_distance(norm_img_hist[pix_value], norm_histograms[pix_value])
                     euclidian_diff[f] += pix_distance
                 #euclidian_diff[f] = math.sqrt(euclidian_diff[f])
-                euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))[:10]
+                euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))
+
+                contador = 0
+                newlist = []
+                for item in euc_diff_sorted:
+                    if item[0] not in self.irrelevants_set and contador < 10:
+                        newlist.append(item)
+                        contador += 1
+                euc_diff_sorted = newlist
+                logger.info(euc_diff_sorted)
         except Exception as e:
             logger.error(str((e, type(e), f)))
 
@@ -216,6 +225,9 @@ class CBIR():
         nomes = [x['img'] for x in relevant]
         
         histogramas_irrels = [list(hists[x['img']].values()) for x in irrelevant]
+        logger.info('?')
+        for hist in irrelevant:
+            self.irrelevants_set.add(hist['img'])
         
         vetorretorno = []
         cont = 0

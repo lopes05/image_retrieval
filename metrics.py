@@ -30,7 +30,7 @@ def collect_cbir(tecnica):
     avg_geral = []
     print(f"START {tecnica}")
     avg_classes = {'Hors':[], 'Food':[], 'Dino':[], 'Moun':[], 'Elep':[], 'Afri':[], 'Beac':[], 'Buse':[], 'Buil':[], 'Flow':[]}
-    with open('single_results.txt', 'a') as arquivo:
+    with open(f'single_results_{tecnica}.txt', 'a') as arquivo:
         for fil in os.listdir('corel1000'):
             print(f"ARQUIVO {fil}")
             avg_file = []
@@ -73,6 +73,6 @@ def collect_cbir(tecnica):
     print(avg_classes)
 
 
-#collect_cbir("qpm")
-#collect_cbir("multiquery")
+collect_cbir("qpm")
+collect_cbir("multiquery")
 collect_cbir("rfra")

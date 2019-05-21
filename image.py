@@ -98,6 +98,7 @@ class CBIR():
     def __init__(self):
         self.query_hist = None
         self.normalized_query = None
+        self.queryinRFRA = None
         self.irrelevants_set = set()
 
     @staticmethod
@@ -170,7 +171,7 @@ class CBIR():
         
         return self.rank_images(self.query_hist, hists)
 
-    def refilter_imgs(self, data):
+    def refilter_imgs(self, data, replace=True):
         #global query_hist
         hists = ProjectServices.get_hists() # todos histogramas
         
@@ -208,13 +209,20 @@ class CBIR():
         new_hist = list(original_hist.values()) + np.subtract(rel_sum, irr_sum)
         
         dic = {x:new_hist[x] for x in range(0,256)}
-        self.query_hist = dic
+        
+        if replace:
+            self.query_hist = dic
+        
         logger.info(self.query_hist)
         return self.rank_images(dic, hists) # normaliza o histograma e compara com os da base
         
 
     def rfra(self, data):
         logger.info("begin rfra")
+        
+        if self.queryinRFRA == None:
+            self.queryinRFRA = self.query_hist.copy()
+        
         relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
         original_hist = list(self.normalized_query.values())
@@ -223,12 +231,21 @@ class CBIR():
         
         histogramas_rels = [list(hists[x['img']].values()) for x in relevant]
         nomes = [x['img'] for x in relevant]
-        
+
         histogramas_irrels = [list(hists[x['img']].values()) for x in irrelevant]
-        logger.info('?')
+
         for hist in irrelevant:
             self.irrelevants_set.add(hist['img'])
+
         
+        if len(relevant) == 0:
+            return self.refilter_imgs(data)
+        elif len(relevant) == 1:
+            if self.calc_single_dist(self.queryinRFRA, hists[nomes[0]]) == 0:
+                return self.refilter_imgs(data)
+
+
+
         vetorretorno = []
         cont = 0
         for imagehist in histogramas_rels:
@@ -282,7 +299,7 @@ class CBIR():
                     #    matrizresultado[nome].append((self.calc_single_dist(self.query_hist, self.query_hist), chave))
                     pass
             #logger.info((nome, matrizresultado[nome]))
-        
+
         return matrizresultado, colunas, chaves
 
     def multiple_query_point_search(self, data):

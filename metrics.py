@@ -73,6 +73,6 @@ def collect_cbir(tecnica):
     print(avg_classes)
 
 
-collect_cbir("qpm")
+#collect_cbir("qpm")
 #collect_cbir("multiquery")
-#collect_cbir("rfra")
+collect_cbir("rfra")

@@ -10,6 +10,9 @@ import math
 import requests
 
 
+databasename = 'corel1000'
+histograms_filename = 'histograms.txt'
+
 logging.basicConfig(filename='backend.log', level=logging.DEBUG)
 logger = logging.getLogger('backend')
 
@@ -55,7 +58,8 @@ class ProjectServices():
 
     @staticmethod
     def save_histograms(histogramas):
-        with open('./histograms.txt', 'a') as f:
+        global histograms_filename
+        with open(f'./{histograms_filename}', 'a') as f:
             for i in histogramas.keys():
                 w = str(i) + '#' + str(histogramas[i]) + '\n'
                 f.write(w)
@@ -84,7 +88,8 @@ class ProjectServices():
         return histogramas
 
     @staticmethod
-    def get_hists(path='./histograms.txt'):
+    def get_hists(path=f'./{histograms_filename}'):
+        global histograms_filename
         hists = {}
         with open(path, 'r') as f:
             lines = [line.split('#') for line in f]
@@ -147,6 +152,9 @@ class CBIR():
 
     def run_process(self, imgurl):
         global query_hist
+        global histograms_filename
+        global databasename
+
         img = cv2.imread(imgurl)
         aux = ImageProperties.to_grayscale(img)
         #aux = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -154,16 +162,19 @@ class CBIR():
         histogram = ImageProperties.calc_histograma(aux)
         logger.info('oi')
         self.query_hist = histogram.copy()
-        if os.path.exists('histograms.txt'):
+        logger.info(histograms_filename)
+        logger.info(databasename)
+        if os.path.exists(f'{histograms_filename}'):
             hists = {}
             try:
-                hists = ProjectServices.get_hists()
+                hists = ProjectServices.get_hists(histograms_filename)
+                logger.info(hists)
             except Exception as e:
                 import traceback
                 logger.error(traceback.format_exc())        
         else:
             logger.info('rebuild')
-            hists = ProjectServices.build_all_histograms('../corel1000')
+            hists = ProjectServices.build_all_histograms(f'../{databasename}')
 
         logger.info(type(histogram))
         self.normalized_query = ImageProperties.normalize_hist(self.query_hist)
@@ -173,7 +184,7 @@ class CBIR():
 
     def refilter_imgs(self, data, replace=True):
         #global query_hist
-        hists = ProjectServices.get_hists() # todos histogramas
+        hists = ProjectServices.get_hists(histograms_filename) # todos histogramas
         
         useful_data = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
@@ -226,7 +237,7 @@ class CBIR():
         relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
         original_hist = list(self.normalized_query.values())
-        hists = ProjectServices.get_hists()
+        hists = ProjectServices.get_hists(histograms_filename)
         
         
         histogramas_rels = [list(hists[x['img']].values()) for x in relevant]
@@ -306,7 +317,7 @@ class CBIR():
         relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
         original_hist = list(self.normalized_query.values())
-        hists = ProjectServices.get_hists()
+        hists = ProjectServices.get_hists(histograms_filename)
         
         histogramas_rels = [list(hists[x['img']].values()) for x in relevant]
         histogramas_irrels = [list(hists[x['img']].values()) for x in irrelevant]

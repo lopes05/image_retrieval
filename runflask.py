@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import requests
 import cv2
 import logging
+import image as image_module
 
 logging.basicConfig(filename='backend.log', level=logging.DEBUG)
 logger = logging.getLogger('backend')
@@ -41,6 +42,16 @@ def image_url():
             filename = secure_filename(image.filename)
             image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         logger.info(image.filename)
+        logger.info(request.form['databasename'])
+        image_module.databasename = request.form['databasename']
+
+        if image_module.databasename != 'corel1000':
+            image_module.histograms_filename = 'histograms_ox.txt'
+        else:
+            image_module.histograms_filename = 'histograms.txt'
+
+        logger.info(image_module.histograms_filename)
+        
         global cbir
         cbir = CBIR()
         hists = cbir.run_process(f'../tmp/{filename}')

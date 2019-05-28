@@ -47,6 +47,11 @@
         <div class="col-sm-4"><input id="imgurl" name="imgurl" type="file" accept="image/png, image/jpeg, image/jpg image/JPG"/>  </div>  
         
         <div class="row">
+            <select id="dbname" onchange="updateOptions()">
+                <option value="corel1000">Corel 1000</option>
+                <option value="oxfordflowers">Oxford Flowers</option>
+            </select>
+            &nbsp;
             <select id="selectbox">
                 <option value="Horse">Cavalos</option>
                 <option value="Mountain">Montanhas</option>
@@ -113,6 +118,49 @@
         $('#imagem').show();
         readURL(this);
     });
+
+
+    function updateOptions(){
+      let dbname = $('#dbname').val();
+      if (dbname == 'corel1000'){
+        $('#selectbox').html('\
+        <option value="Horse">Cavalos</option>\
+        <option value="Mountain">Montanhas</option>\
+        <option value="Food">Comida</option>\
+        <option value="Dinosaur">Dinossauros</option>\
+        <option value="Elephant">Elefantes</option>\
+        <option value="Flower">Flores</option>\
+        <option value="Beach">Praia</option>\
+        <option value="Building">Construções</option>\
+        <option value="Buses">Onibus</option>\
+        <option value="Africa">Africa</option>')
+      }
+      else{
+        $('#selectbox').html('\
+        <option value="Buttercup">Buttercup</option>\
+        <option value="ColtsFoot">Colts\' Foot</option>\
+        <option value="Cowslip">Cowslip</option>\
+        <option value="Daffodil">Daffodil</option>\
+        <option value="Daisy">Daisy</option>\
+        <option value="Dandelalion">Dandelion</option>\
+        <option value="Fritillary">Fritillary</option>\
+        <option value="Iris">Iris</option>\
+        <option value="Pansy">Pansy</option>\
+        <option value="Sunflower">Sunflower</option>\
+        <option value="Windflower">Windflower</option>\
+        <option value="Snowdrop">Snowdrop</option>\
+        <option value="LilyValley">Lily Valley</option>\
+        <option value="Bluebell">Blue Bell</option>\
+        <option value="Crocus">Crocus</option>\
+        <option value="Tigerlily">Tiger Lily</option>\
+        <option value="Tulip">Tulip</option>\
+        '
+        )
+      }
+
+      
+      // 'buttercup' 'coltsfoot' 'daffodil' 'daisy' 'dandelion' 'fritillary' 'iris' 'pansy' 'sunflower' 'windflower' 'snowdrop' 'lily valley' 'blue bell' 'crocus' 'tigerlily' 'tulip' 'cowslip'
+    };
     
     </script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

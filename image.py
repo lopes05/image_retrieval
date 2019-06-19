@@ -105,6 +105,7 @@ class CBIR():
         self.normalized_query = None
         self.queryinRFRA = None
         self.irrelevants_set = set()
+        self.K = 20
 
     @staticmethod
     def euclidian_distance(v1, v2):
@@ -135,7 +136,7 @@ class CBIR():
                 contador = 0
                 newlist = []
                 for item in euc_diff_sorted:
-                    if item[0] not in self.irrelevants_set and contador < 10:
+                    if item[0] not in self.irrelevants_set and contador < self.K:
                         newlist.append(item)
                         contador += 1
                 euc_diff_sorted = newlist
@@ -278,7 +279,7 @@ class CBIR():
             logger.info("media")
             logger.info(media)
         logger.info("------------")
-        listaretorno = sorted(listaretorno)[:10]
+        listaretorno = sorted(listaretorno)[:self.K]
         dicretorno = {}
         for item in listaretorno:
             dicretorno[item[1]] = item[0]
@@ -387,7 +388,7 @@ class CBIR():
         dx = {}
         
         for el in dlinhas:
-            if len(dx) == 10:
+            if len(dx) == self.K:
                 break
             dx[el[1]] = el[0]
        

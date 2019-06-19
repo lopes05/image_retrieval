@@ -25,14 +25,17 @@ def mock_json(resultados, classname, tecnica):
 
     return jsonn
 
+
+import time
 def collect_cbir(tecnica):
     cont = 0
+    tic = time.clock()
     avg_geral = []
     print(f"START {tecnica}")
     avg_classes = {'Hors':[], 'Food':[], 'Dino':[], 'Moun':[], 'Elep':[], 'Afri':[], 'Beac':[], 'Buse':[], 'Buil':[], 'Flow':[]}
-    with open(f'single_results_{tecnica}.txt', 'a') as arquivo:
+    with open(f'single_results_{tecnica}_20.txt', 'a') as arquivo:
         for fil in os.listdir('corel1000'):
-            print(f"ARQUIVO {fil}")
+            #print(f"ARQUIVO {fil}")
             avg_file = []
             
             cbir = CBIR()
@@ -51,7 +54,7 @@ def collect_cbir(tecnica):
                     hists = cbir.rfra(jsonn)
                 avg_file.append(calc_precision_single_query(hists, fil[:4]))
 
-            print(avg_file)
+            #print(avg_file)
             arquivo.write(fil + ':' + str(avg_file) + '\n')
             avg_geral.append((fil, np.mean(avg_file)))
             cont += 1
@@ -60,19 +63,21 @@ def collect_cbir(tecnica):
         fil = tup[0][:4]
         avg_classes[fil].append(tup[1])
 
-    with open('results.txt', 'a') as f:
+    toc = time.clock()
+
+    with open('results20.txt', 'a') as f:
         f.write(tecnica + "\n")
         for classe in avg_classes:
             avg_classes[classe] = np.mean(avg_classes[classe])
             f.write(classe + ':' + str(avg_classes[classe])+'\n')
         f.write("\n")
+        f.write("TEMPO: " + str(toc - tic))
     
 
         
     print(avg_geral)
     print(avg_classes)
 
-
-collect_cbir("qpm")
 collect_cbir("multiquery")
 collect_cbir("rfra")
+collect_cbir("qpm")

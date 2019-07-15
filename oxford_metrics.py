@@ -36,7 +36,7 @@ def collect_cbir(tecnica):
     avg_classes = {
         'Daff': [], 'Snow': [],  'Lily': [],  'Blue': [],  'Croc': [],  'Iris': [],  'Tige': [],  'Tuli': [],  'Frit': [],  'Sunf': [],  'Dais': [],  'Colt': [],  'Dand': [],  'Cows': [],  'Butt': [],  'Wind': [],  'Pans':[]
     }
-    with open(f'single_results_{tecnica}_oxford.txt', 'a') as arquivo:
+    with open(f'single_results_{tecnica}_oxford20.txt', 'a') as arquivo:
         
         for fil in os.listdir('oxfordflowers'):
             
@@ -68,7 +68,7 @@ def collect_cbir(tecnica):
         fil = tup[0][:4]
         avg_classes[fil].append(tup[1])
 
-    with open('results_oxford_flowers.txt', 'a') as f:
+    with open('results_oxford_flowers20.txt', 'a') as f:
         f.write(tecnica + "\n")
         for classe in avg_classes:
             avg_classes[classe] = np.mean(avg_classes[classe])
@@ -81,6 +81,6 @@ def collect_cbir(tecnica):
     print(avg_classes)
 
 
-collect_cbir("qpm")
-collect_cbir("multiquery")
+#collect_cbir("qpm")
+#collect_cbir("multiquery")
 collect_cbir("rfra")

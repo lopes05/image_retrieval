@@ -105,7 +105,7 @@ class CBIR():
         self.normalized_query = None
         self.queryinRFRA = None
         self.irrelevants_set = set()
-        self.K = 20
+        self.K = 10
 
     @staticmethod
     def euclidian_distance(v1, v2):

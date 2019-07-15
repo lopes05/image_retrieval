@@ -37,7 +37,9 @@ def collect_cbir(tecnica):
         for fil in os.listdir('corel1000'):
             #print(f"ARQUIVO {fil}")
             avg_file = []
-            
+            cont+=1
+            if cont <= 810:
+                continue
             cbir = CBIR()
             hists = cbir.run_process(f'corel1000/{fil}')
             avg_file.append(calc_precision_single_query(hists, fil[:4]))
@@ -57,7 +59,7 @@ def collect_cbir(tecnica):
             #print(avg_file)
             arquivo.write(fil + ':' + str(avg_file) + '\n')
             avg_geral.append((fil, np.mean(avg_file)))
-            cont += 1
+            #cont += 1
 
     for tup in avg_geral:
         fil = tup[0][:4]
@@ -78,6 +80,6 @@ def collect_cbir(tecnica):
     print(avg_geral)
     print(avg_classes)
 
-collect_cbir("multiquery")
-collect_cbir("rfra")
+#collect_cbir("multiquery")
+#collect_cbir("rfra")
 collect_cbir("qpm")

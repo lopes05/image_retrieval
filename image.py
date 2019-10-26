@@ -10,6 +10,7 @@ import math
 import requests
 
 
+modelo = 'grayscale'
 databasename = 'corel1000'
 histograms_filename = 'histograms.txt'
 
@@ -39,6 +40,36 @@ class ImageProperties():
             dic[pixel] += 1
         
         return dic
+    
+    def calc_histograma_rgb(img):
+        """
+            Returns an dict {0: x, ..., n: y} of 768
+        """
+        
+        WB = np.zeros(256)
+        WG = np.zeros(256)
+        WR = np.zeros(256)
+        qtdeLinhas, qtdeColunas, c = img.shape
+        B = img[:,:,0]
+        G = img[:,:,1]
+        R = img[:,:,2]
+        
+        for i in range(qtdeLinhas):
+            for j in range(qtdeColunas):
+                WB[B[i,j]] = WB[B[i,j]] + 1
+                WG[G[i,j]] = WG[G[i,j]] + 1
+                WR[R[i,j]] = WR[R[i,j]] + 1
+        for i in range(256):
+            WB[i] = WB[i]/(qtdeLinhas*qtdeColunas)
+            WG[i] = WG[i]/(qtdeLinhas*qtdeColunas)
+            WR[i] = WR[i]/(qtdeLinhas*qtdeColunas)
+        
+        hist_list = np.append(np.append(WB,WG),WR)
+        hist_dic = {i:x for i,x in enumerate(hist_list)}
+        #for pixel in imgflat:
+        #    dic[pixel] += 1
+        
+        return hist_dic
 
 
     def normalize_hist(hist, ok=True):
@@ -73,10 +104,16 @@ class ProjectServices():
         try:
             for fil in os.listdir(path):
                 logger.info(fil)
-                img = ImageProperties.to_grayscale(cv2.imread(f'{path}/{fil}'))
+                #img = ImageProperties.to_grayscale(cv2.imread(f'{path}/{fil}'))
+                img = cv2.imread(f'{path}/{fil}')
                 #img = cv2.cvtColor(cv2.imread(f'{path}/{fil}'), cv2.COLOR_RGB2GRAY)
-                hist = ImageProperties.calc_histograma(img)
-                hist = ImageProperties.normalize_hist(hist)
+
+                if modelo == 'grayscale':
+                    hist = ImageProperties.calc_histograma(img)
+                    hist = ImageProperties.normalize_hist(hist)
+                else:
+                    hist = ImageProperties.calc_histograma_rgb(img)
+                
                 histogramas[fil] = hist
                 cont += 1
         except Exception as e:
@@ -157,10 +194,14 @@ class CBIR():
         global databasename
 
         img = cv2.imread(imgurl)
-        aux = ImageProperties.to_grayscale(img)
+        #aux = ImageProperties.to_grayscale(img)
+        aux = img
         #aux = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         logger.info('o')
-        histogram = ImageProperties.calc_histograma(aux)
+        if modelo == 'grayscale':
+            histogram = ImageProperties.calc_histograma(ImageProperties.to_grayscale(aux))
+        else:
+            histogram = ImageProperties.calc_histograma_rgb(aux)
         logger.info('oi')
         self.query_hist = histogram.copy()
         logger.info(histograms_filename)
@@ -198,7 +239,8 @@ class CBIR():
             histogramas = [list(hists[x['img']].values()) for x in useful_data]
             tamrel = len(useful_data)
         else:
-            histogramas = [[0] * 256]
+            x = 1 if modelo == 'grayscale' else 3
+            histogramas = [[0] * (256*x)]
         
         rel_sum = np.sum(histogramas, axis=0) # soma da qtde de cada tom de cinza
         rel_sum = rel_sum / tamrel
@@ -208,7 +250,8 @@ class CBIR():
             irr = [list(hists[x['img']].values()) for x in irrelevant]
             tamirrel = len(irrelevant)
         else:
-            irr = [[0] * 256]
+            x = 1 if modelo == 'grayscale' else 3
+            irr = [[0] * (256*x)]
 
         irr_sum = np.sum(irr, axis=0) # soma da qtde de cada tom de cinza
         irr_sum = irr_sum / tamirrel
@@ -220,7 +263,8 @@ class CBIR():
 
         new_hist = list(original_hist.values()) + np.subtract(rel_sum, irr_sum)
         
-        dic = {x:new_hist[x] for x in range(0,256)}
+        x_ = 1 if modelo == 'grayscale' else 3
+        dic = {x:new_hist[x] for x in range(0,256*x_)}
         
         if replace:
             self.query_hist = dic
@@ -261,7 +305,8 @@ class CBIR():
         vetorretorno = []
         cont = 0
         for imagehist in histogramas_rels:
-            hist_tmp = {x:imagehist[x] for x in range(0,256)}
+            x_ = 1 if modelo == 'grayscale' else 3
+            hist_tmp = {x:imagehist[x] for x in range(0,256*x_)}
             results = self.rank_images(hist_tmp, hists)
             vetorretorno.append(results)
             logger.info("done query " + str(cont))
@@ -337,7 +382,8 @@ class CBIR():
         logger.info(len(queries))
         cont = 0
         for imagehist in queries:
-            hist_tmp = {x:imagehist[x] for x in range(0,256)}
+            x_=1 if modelo == 'grayscale' else 3
+            hist_tmp = {x:imagehist[x] for x in range(0,256*x_)}
             results = self.rank_images(hist_tmp, hists)
             vetorretorno.append(results)
             logger.info("done query " + str(cont))

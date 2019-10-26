@@ -9,6 +9,7 @@ function refilter()
     imgs = [];
     var sel = document.getElementById('selectbox');
     var tec = document.getElementById('tecnica');
+    var mod = document.getElementById('modelocores');
     for (d in dados){
         el = document.getElementById(d + "d");
         el2 = document.getElementById(d + "i");
@@ -27,6 +28,7 @@ function refilter()
     }
     imgs.push({'classname': sel.value});
     imgs.push({'tecnica': tec.value});
+    
     json = JSON.stringify(imgs);
     let xhr = new XMLHttpRequest();
     xhr.open("POST", 'http://localhost:5000/refilter', true);
@@ -57,10 +59,11 @@ function upload_file()
 {
     let photo = document.getElementById("imgurl").files[0] // simlar to: document.getElementById("image-file").files[0] 
     let dbname = document.getElementById("dbname").value
-
+    let modelo = document.getElementById("modelocores").value
     let formData = new FormData();
     formData.append("imgurl", photo);
     formData.append("databasename", dbname);
+    formData.append("modelo", modelo);
 
     let xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function(e) {

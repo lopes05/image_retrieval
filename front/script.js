@@ -56,9 +56,11 @@ function recreate()
 function upload_file() 
 {
     let photo = document.getElementById("imgurl").files[0] // simlar to: document.getElementById("image-file").files[0] 
+    let dbname = document.getElementById("dbname").value
 
     let formData = new FormData();
-    formData.append("imgurl", photo);  
+    formData.append("imgurl", photo);
+    formData.append("databasename", dbname);
 
     let xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function(e) {
@@ -82,7 +84,7 @@ function upload_file()
 function loadgallery(json_data, first) {
     $('#imagem').hide();
     var arr = JSON.parse(json_data.response);
-    
+    let dbname = document.getElementById('dbname').value;
     str = "";
     var x = 0;
     for (ke in arr){
@@ -91,7 +93,7 @@ function loadgallery(json_data, first) {
             + '<input id="' + ke + 'd" name="dados" type="checkbox"\> Relevante?'
             + '<input id="' + ke + 'i" name="dados" type="checkbox"\> Irrelevante?'
             + '<a href="#" class="d-block mb-4 h-100">' + 
-            '<img class="img-fluid img-thumbnail img-responsive" style="width:300px;height: 150px;" src="/home/gustavo/GustavoUNB/tcc/corel1000/' + ke + '" alt="' + arr[ke] + '"\>'
+            '<img class="img-fluid img-thumbnail img-responsive" style="width:300px;height: 150px;" src="../' + dbname + '/' + ke + '" alt="' + arr[ke] + '"\>'
             + "<\a> </div>";
     }
     

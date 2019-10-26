@@ -10,6 +10,9 @@ import math
 import requests
 
 
+databasename = 'corel1000'
+histograms_filename = 'histograms.txt'
+
 logging.basicConfig(filename='backend.log', level=logging.DEBUG)
 logger = logging.getLogger('backend')
 
@@ -55,7 +58,8 @@ class ProjectServices():
 
     @staticmethod
     def save_histograms(histogramas):
-        with open('./histograms.txt', 'a') as f:
+        global histograms_filename
+        with open(f'./{histograms_filename}', 'a') as f:
             for i in histogramas.keys():
                 w = str(i) + '#' + str(histogramas[i]) + '\n'
                 f.write(w)
@@ -84,7 +88,8 @@ class ProjectServices():
         return histogramas
 
     @staticmethod
-    def get_hists(path='./histograms.txt'):
+    def get_hists(path=f'./{histograms_filename}'):
+        global histograms_filename
         hists = {}
         with open(path, 'r') as f:
             lines = [line.split('#') for line in f]
@@ -98,7 +103,9 @@ class CBIR():
     def __init__(self):
         self.query_hist = None
         self.normalized_query = None
+        self.queryinRFRA = None
         self.irrelevants_set = set()
+        self.K = 10
 
     @staticmethod
     def euclidian_distance(v1, v2):
@@ -124,7 +131,16 @@ class CBIR():
                     pix_distance = CBIR.manhatan_distance(norm_img_hist[pix_value], norm_histograms[pix_value])
                     euclidian_diff[f] += pix_distance
                 #euclidian_diff[f] = math.sqrt(euclidian_diff[f])
-                euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))[:10]
+                euc_diff_sorted = sorted(euclidian_diff.items(), key=operator.itemgetter(1))
+
+                contador = 0
+                newlist = []
+                for item in euc_diff_sorted:
+                    if item[0] not in self.irrelevants_set and contador < self.K:
+                        newlist.append(item)
+                        contador += 1
+                euc_diff_sorted = newlist
+                #logger.info(euc_diff_sorted)
         except Exception as e:
             logger.error(str((e, type(e), f)))
 
@@ -137,6 +153,9 @@ class CBIR():
 
     def run_process(self, imgurl):
         global query_hist
+        global histograms_filename
+        global databasename
+
         img = cv2.imread(imgurl)
         aux = ImageProperties.to_grayscale(img)
         #aux = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -144,16 +163,19 @@ class CBIR():
         histogram = ImageProperties.calc_histograma(aux)
         logger.info('oi')
         self.query_hist = histogram.copy()
-        if os.path.exists('histograms.txt'):
+        logger.info(histograms_filename)
+        logger.info(databasename)
+        if os.path.exists(f'{histograms_filename}'):
             hists = {}
             try:
-                hists = ProjectServices.get_hists()
+                hists = ProjectServices.get_hists(histograms_filename)
+                logger.info(hists)
             except Exception as e:
                 import traceback
                 logger.error(traceback.format_exc())        
         else:
             logger.info('rebuild')
-            hists = ProjectServices.build_all_histograms('../corel1000')
+            hists = ProjectServices.build_all_histograms(f'../{databasename}')
 
         logger.info(type(histogram))
         self.normalized_query = ImageProperties.normalize_hist(self.query_hist)
@@ -161,9 +183,9 @@ class CBIR():
         
         return self.rank_images(self.query_hist, hists)
 
-    def refilter_imgs(self, data):
+    def refilter_imgs(self, data, replace=True):
         #global query_hist
-        hists = ProjectServices.get_hists() # todos histogramas
+        hists = ProjectServices.get_hists(histograms_filename) # todos histogramas
         
         useful_data = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
@@ -199,24 +221,43 @@ class CBIR():
         new_hist = list(original_hist.values()) + np.subtract(rel_sum, irr_sum)
         
         dic = {x:new_hist[x] for x in range(0,256)}
-        self.query_hist = dic
+        
+        if replace:
+            self.query_hist = dic
+        
         logger.info(self.query_hist)
         return self.rank_images(dic, hists) # normaliza o histograma e compara com os da base
         
 
     def rfra(self, data):
         logger.info("begin rfra")
+        
+        if self.queryinRFRA == None:
+            self.queryinRFRA = self.query_hist.copy()
+        
         relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
         original_hist = list(self.normalized_query.values())
-        hists = ProjectServices.get_hists()
+        hists = ProjectServices.get_hists(histograms_filename)
         
         
         histogramas_rels = [list(hists[x['img']].values()) for x in relevant]
         nomes = [x['img'] for x in relevant]
-        
+
         histogramas_irrels = [list(hists[x['img']].values()) for x in irrelevant]
+
+        for hist in irrelevant:
+            self.irrelevants_set.add(hist['img'])
+
         
+        if len(relevant) == 0:
+            return self.refilter_imgs(data)
+        elif len(relevant) == 1:
+            if self.calc_single_dist(self.queryinRFRA, hists[nomes[0]]) == 0:
+                return self.refilter_imgs(data)
+
+
+
         vetorretorno = []
         cont = 0
         for imagehist in histogramas_rels:
@@ -238,7 +279,7 @@ class CBIR():
             logger.info("media")
             logger.info(media)
         logger.info("------------")
-        listaretorno = sorted(listaretorno)[:10]
+        listaretorno = sorted(listaretorno)[:self.K]
         dicretorno = {}
         for item in listaretorno:
             dicretorno[item[1]] = item[0]
@@ -270,14 +311,13 @@ class CBIR():
                     #    matrizresultado[nome].append((self.calc_single_dist(self.query_hist, self.query_hist), chave))
                     pass
             #logger.info((nome, matrizresultado[nome]))
-        
         return matrizresultado, colunas, chaves
 
     def multiple_query_point_search(self, data):
         relevant = [x for x in data if x['relevant']] # apenas os marcados como relevantes
         irrelevant = [x for x in data if x['irrelevant']]
         original_hist = list(self.normalized_query.values())
-        hists = ProjectServices.get_hists()
+        hists = ProjectServices.get_hists(histograms_filename)
         
         histogramas_rels = [list(hists[x['img']].values()) for x in relevant]
         histogramas_irrels = [list(hists[x['img']].values()) for x in irrelevant]
@@ -285,8 +325,11 @@ class CBIR():
         logger.info("CRIANDO PHANTOM OBJECT")
         logger.info(histogramas_rels)
         rfp = RelevanceFeedbackProjection(original_hist, histogramas_rels, histogramas_irrels)
-        
+        for hist in irrelevant:
+            self.irrelevants_set.add(hist['img'])
+
         phantom_object = rfp.calc_new_object()
+        logger.info(phantom_object)
         logger.info("PHANTOM OBJECT CRIADO")
         queries = histogramas_rels + [phantom_object]
 
@@ -344,7 +387,7 @@ class CBIR():
         dx = {}
         
         for el in dlinhas:
-            if len(dx) == 10:
+            if len(dx) == self.K:
                 break
             dx[el[1]] = el[0]
        
@@ -439,22 +482,24 @@ class RelevanceFeedbackProjection():
 
     def calc_avg(self):
         avg = []
-
         for featureindex in range(len(self.query)):
             soma = 0
             for imageindex in range(len(self.relevants)):
                 #self.sum_dists = 0.0000 + 0.0038 + 0.0137
                 #self.vet_dists = [0.0000, 0.0038, 0.0137]
                 # e se a divisao for por 0
+                
+                if self.sum_dists == 0:
+                    self.sum_dists = 1
                 dists_calc = self.vet_dists[imageindex] / self.sum_dists
-            
+                
                 weights_calc = self.vet_weight[imageindex] / self.sumweights
-                print(dists_calc, weights_calc)
+                #print(dists_calc, weights_calc)
 
                 feature = self.relevants[imageindex][featureindex]
-                print('feature', feature)
+                #print('feature', feature)
                 conta = ((feature * dists_calc + feature * weights_calc))
-                print('conta>', conta)
+                #print('conta>', conta)
                 soma += conta
             avg.append(soma/2)
         logger.info("avg calculado")
@@ -462,6 +507,7 @@ class RelevanceFeedbackProjection():
 
     def calc_new_object(self):
         new_obj = [0] * len(self.query)
+       
         for i in range(len(new_obj)):
             new_obj[i] = (self.projp1[i] + self.projp2[i] + self.avg[i]) / 3
         

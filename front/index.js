@@ -1,5 +1,5 @@
 let pyl = require('python-shell');
-let pyshell = new pyl.PythonShell('/home/gustavo/GustavoUNB/tcc/runflask.py');
+let pyshell = new pyl.PythonShell('../runflask.py');
 
 // sends a message to the Python script via stdin
 pyshell.send('hello');
@@ -30,7 +30,7 @@ let boot = () => {
 	});
 
 	win.loadURL(`file://${__dirname}/index.html`);
-	win.webContents.openDevTools();
+	//win.webContents.openDevTools();
 	
 };
 

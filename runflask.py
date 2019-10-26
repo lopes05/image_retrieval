@@ -44,11 +44,18 @@ def image_url():
         logger.info(image.filename)
         logger.info(request.form['databasename'])
         image_module.databasename = request.form['databasename']
+        image_module.modelo = request.form['modelo']
 
         if image_module.databasename != 'corel1000':
-            image_module.histograms_filename = 'histograms_ox.txt'
+            if image_module.modelo == 'grayscale':
+                image_module.histograms_filename = 'histograms_ox.txt'
+            else:
+                image_module.histograms_filename = 'histograms_ox_rgb.txt'
         else:
-            image_module.histograms_filename = 'histograms.txt'
+            if image_module.modelo == 'grayscale':
+                image_module.histograms_filename = 'histograms2.txt'
+            else:
+                image_module.histograms_filename = 'histograms.txt'
 
         logger.info(image_module.histograms_filename)
         

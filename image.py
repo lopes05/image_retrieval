@@ -311,7 +311,6 @@ class CBIR():
                     #    matrizresultado[nome].append((self.calc_single_dist(self.query_hist, self.query_hist), chave))
                     pass
             #logger.info((nome, matrizresultado[nome]))
-
         return matrizresultado, colunas, chaves
 
     def multiple_query_point_search(self, data):

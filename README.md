@@ -1,2 +1,2 @@
-# image_recover
-Image recover by relevance
+# image retrieval
+Image retrieval by relevance

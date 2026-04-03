@@ -16,7 +16,7 @@
     "python-shell": "^1.0.6"
   },
   "devDependencies": {
-    "electron": "^22.3.25",
+    "electron": "^39.8.4",
     "electron-prebuilt-compile": "^3.0.2",
     "jquery": "^3.5.0"
   }
